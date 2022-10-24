@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="net.javadog.chat.mapper.MessageMapper">
+    <!--获取信息分页列表-->
+    <select id="list" resultType="net.javadog.chat.model.entity.Message"
+            parameterType="net.javadog.chat.model.entity.Message">
+        SELECT *
+        FROM ((
+                  SELECT 0              AS source,
+                         msgList.*,
+                         f.nickname     AS targetName,
+                         f.nickname     AS nickname,
+                         f.avatar       AS targetAvatar,
+                         mur.unread_num AS unread
+                  FROM friend f,
+                       (
+                           SELECT fm.msg_content                                                                     AS lastContent,
+                                  fm.create_time                                                                     AS lastTime,
+                                  fm.from_user_id                                                                    AS fromUserId,
+                                  fm.to_user_id                                                                      AS toUserId,
+                                  IF
+                                      (
+                                              fm.to_user_id = #{message.mineUserId}, fm.from_user_id,
+                                              fm.to_user_id)                                                         AS targetId,
+                                  fm.msg_type                                                                        AS msgType
+                           FROM friend_msg fm,
+                                (
+                                    SELECT id
+                                    FROM friend_msg
+                                    WHERE create_time IN (
+                                        SELECT MAX(create_time)
+                                        FROM (
+                                                 SELECT *
+                                                 FROM (
+                                                          (
+                                                              SELECT id,
+                                                                     from_user_id AS A,
+                                                                     to_user_id   AS B,
+                                                                     create_time
+                                                              FROM friend_msg ff
+                                                              WHERE from_user_id = #{message.mineUserId})
+                                                          UNION ALL
+                                                          (
+                                                              SELECT id,
+                                                                     ft.to_user_id   AS A,
+                                                                     ft.from_user_id AS B,
+                                                                     create_time
+                                                              FROM friend_msg ft
+                                                              WHERE to_user_id = #{message.mineUserId})) friendMsg
+
+                                                 ORDER BY friendMsg.create_time DESC
+                                             ) temp
+                                        GROUP BY temp.B
+                                    )
+                                ) AS last
+                           WHERE
+                               last.id = fm.id
+                       ) msgList
+                           LEFT JOIN msg_unread_record mur ON (
+                                   mur.target_id = msgList.fromUserId
+                               AND mur.user_id = #{message.mineUserId})
+
+                  WHERE msgList.targetId = f.friend_id
+                    AND f.STATUS = 1
+                    AND f.user_id = #{message.mineUserId}
+                  GROUP BY targetId
+                  ORDER BY msgList.lastTime DESC
+              )
+              UNION ALL
+              (
+                  SELECT 1                           AS source,
+                         msg_content                 AS lastContent,
+                         msgGroup.create_time        AS lastTime,
+                         msgGroup.from_user_id       AS fromUserId,
+                         msgGroup.group_id           AS toUserId,
+                         msgGroup.group_id           AS targetId,
+                         msgGroup.msg_type           AS msgType,
+                         NAME                        AS targetName,
+                         msgGroup.from_user_nickname AS nickname,
+                         avatar                      AS targetAvatar,
+                         mur.unread_num              AS unread
+                  FROM (
+                           SELECT *
+                           FROM (
+                                    SELECT *
+                                    FROM group_msg
+                                    WHERE create_time IN (SELECT MAX(create_time) FROM group_msg GROUP BY group_id)) msg
+                           WHERE msg.group_id IN (SELECT DISTINCT group_id
+                                                  FROM group_user
+                                                  WHERE user_id = #{message.mineUserId} AND `status` = 1)
+                           ORDER BY create_time DESC) msgGroup
+                           LEFT JOIN `group` g ON g.id = msgGroup.group_id
+                           LEFT JOIN msg_unread_record mur
+                                     ON (mur.target_id = msgGroup.group_id AND mur.user_id = #{message.mineUserId})
+              )) endMsg
+        ORDER BY endMsg.lastTime DESC;
+
+    </select>
+</mapper>
