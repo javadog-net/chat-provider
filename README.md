@@ -9,8 +9,11 @@ JavaDog Chat 简单通讯聊天软件是基于SpringBoot+MybatisPlus+uniapp+uvie
 ### 🎁快速链接
 微信公众号：**JavaDog程序狗**
 **关注公众号，发送 chat ，无任何套路即可获得**
+
 ![](https://img.javadog.net/blog/chat/dc17e1bea0864e0bac8c0bfdd43e6684~tplv-k3u1fbpfcp-zoom-in-crop-mark_4536_0_0_0.webp)
-或访问[https://javadog.net/archives/chat](https://javadog.net/archives/chat)
+
+或访问
+[https://javadog.net/archives/chat](https://javadog.net/archives/chat)
 
 ### 🌱体验地址
 **因二维码图被和谐，最好访问[https://javadog.net/archives/chat](https://javadog.net/archives/chat)进行扫码访问体验**
